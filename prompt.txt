@@ -1,0 +1,210 @@
+我的文件结构如下：
+├─DeepLearningPrimer
+│  ├─neural_network
+│  │      activation.py
+│  │      neural_network.py
+│  │      __init__.py
+│  │
+│  ├─num_recog
+│  │  │  num_recog.py
+│  │  │  __init__.py
+│  │  │
+│  │  └─data
+│  │      │  download.py
+│  │      │  mnist.pkl
+│  │      │  mnist.py
+│  │      │  sample_weight.pkl
+│  │      │  t10k-images-idx3-ubyte.gz
+│  │      │  t10k-labels-idx1-ubyte.gz
+│  │      │  train-images-idx3-ubyte.gz
+│  │      │  train-labels-idx1-ubyte.gz
+│  │      │
+│  │      └─__pycache__
+│  │              mnist.cpython-310.pyc
+│  │
+│  └─perceptron
+│          logic_circuit.py
+│          __init__.py
+
+我在 num_recog.py 使用如下导入语句：
+from ..neural_network.activation import *
+
+结果报错：
+ImportError: attempted relative import with no known parent package
+
+def init_network():
+    # sample_weight.pkl 文件以字典变量的形式保存了权重和偏置参数
+    with open(os.path.join("data", "sample_weight.pkl"), 'rb') as f:
+        network = pickle.load(f)
+    return network
+
+上面这段代码报错：FileNotFoundError: [Errno 2] No such file or directory: 'data\\sample_weight.pkl'
+可是 data\\sample_weight.pkl 明明是存在的，会是什么原因呢？
+运行环境是 Windows 下的 vscode
+
+
+下面是一个两层神经网络的初始化方法，参数 weight_init_std 是什么？
+
+import numpy as np
+
+class TwoLayerNet:
+    def __init__(self, input_size, hidden_size, output_size, weight_init_std=0.01):
+        # 参数从头开始依次表示输入层的神经元数、隐藏层的神经元数、输出层的神经元数
+        # 初始化权重和偏置，用一部字典存放
+        self.params = {}
+        # 输入层和隐藏层之间的权重参数
+        self.params['W1'] = weight_init_std * np.random.randn(input_size, hidden_size)
+        # 输入层和隐藏层之间的偏置参数
+        self.params['b1'] = np.zeros(hidden_size)
+
+        # 隐藏层和输出层之间的权重参数
+        self.params['W2'] = weight_init_std * np.random.randn(hidden_size, output_size)
+        # 隐藏层和输出层之间的偏置参数
+        self.params['b2'] = np.zeros(output_size)
+
+在神经网络的矩阵乘法结点的反向传播中，为什么会有：
+正向传播时，偏置会被加到每一个数据（第1个、第2个……）上。因此，
+反向传播时，各个数据的反向传播的值需要汇总为偏置的元素。用代码表示
+的话，如下所示：
+
+class Affine:
+    def __init__(self, W, b):
+        self.W = W
+        self.b = b
+        self.x = None
+        self.dW = None
+        self.db = None
+
+    def forward(self, x):
+        self.x = x
+        out = np.dot(x, self.W) + self.b
+        return out
+
+    def backward(self, dout):
+        dx = np.dot(dout, self.W.T)
+        self.dW = np.dot(self.x.T, dout)
+        self.db = np.sum(dout, axis=0)
+        return dx
+
+我不理解，为什么反向传播时，各个数据的反向传播的值需要汇总为偏置的元素？请详细解释下
+
+
+我不理解，下面的 backward 函数中，计算反向传播的偏导数，最后为何要除以 batch_size？
+class SoftmaxWithLoss:
+    """
+    Softmax 激活函数加(交叉熵误差)损失函数层
+    """
+    def __init__(self):
+        self.loss = None # 损失
+        self.y = None # softmax的输出
+        self.t = None # 监督数据（one-hot vector）
+
+    def forward(self, x, t):
+        """
+        x: 上游传来的的输出值，作为此处向前传播的输入值
+        """
+        self.t = t
+        self.y = softmax(x)
+        # 下面这行计算的其实是 batch_size 条数据的【平均】交叉熵误差
+        self.loss = cross_entropy_error(self.y, self.t)
+        # 这一层算是在下游的末端了，输出的直接是最后损失函数的值
+        return self.loss
+
+    def backward(self, dout=1):
+        """
+        反向传播
+        注意此结点是反向传播的起始处，所以 dout 取 1
+        """
+        batch_size = self.t.shape[0]
+        dx = (self.y - self.t) / batch_size
+        return dx
+
+
+下面的跟深度学习相关的 Python 代码是干什么的？请逐行解释：
+import numpy as np
+
+def numerical_gradient(f, x):
+    h = 1e-4 # 0.0001
+    grad = np.zeros_like(x)
+
+    it = np.nditer(x, flags=['multi_index'], op_flags=['readwrite'])
+    while not it.finished:
+        idx = it.multi_index
+        tmp_val = x[idx]
+        x[idx] = float(tmp_val) + h
+        fxh1 = f(x) # f(x+h)
+
+        x[idx] = tmp_val - h
+        fxh2 = f(x) # f(x-h)
+        grad[idx] = (fxh1 - fxh2) / (2*h)
+
+        x[idx] = tmp_val # 还原值
+        it.iternext()
+
+    return grad
+
+
+
+下面这个 python 函数当 x.ndim == 2 时将 x 转置是必要的吗？
+
+import numpy as np
+# softmax 函数的防计算溢出版本
+# 可以证明，在进行softmax的指数函数的运算时
+# 将每个输入值加上（或者减去）某个常数并不会改变运算的结果
+def softmax(x):
+    if x.ndim == 2:
+        x = x.T
+        x = x - np.max(x, axis=0)  # 溢出对策
+        y = np.exp(x) / np.sum(np.exp(x), axis=0)
+        return y.T
+
+    x = x - np.max(x)  # 溢出对策
+    return np.exp(x) / np.sum(np.exp(x))
+
+
+x 是个 numpy 二维数组，下面的代码做了什么工作：
+x.reshape(x.shape[0], -1)
+
+
+下面的 Python 代码中，最后绘制的直方图的横轴和纵轴分别代表什么？
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+from neural_network.activation import *
+
+input_data = np.random.randn(1000, 100)  # 1000个数据
+node_num = 100  # 各隐藏层的节点（神经元）数
+hidden_layer_size = 5  # 隐藏层有5层
+activations = {}  # 激活值的结果保存在这里
+
+x = input_data
+
+for i in range(hidden_layer_size):
+    if i != 0:
+        x = activations[i - 1]
+
+    # 改变初始值进行实验！
+    # w = np.random.randn(node_num, node_num) * 1
+    # w = np.random.randn(node_num, node_num) * 0.01
+    # w = np.random.randn(node_num, node_num) * np.sqrt(1.0 / node_num)
+    w = np.random.randn(node_num, node_num) * np.sqrt(2.0 / node_num)
+
+    a = np.dot(x, w)
+
+    # 将激活函数的种类也改变，来进行实验！
+    # z = sigmoid(a)
+    z = relu(a)
+    # z = tanh(a)
+
+    activations[i] = z
+
+# 绘制直方图
+for i, a in activations.items():
+    plt.subplot(1, len(activations), i + 1)
+    plt.title(str(i + 1) + "-layer")
+    if i != 0: plt.yticks([], [])
+    # plt.xlim(0.1, 1)
+    # plt.ylim(0, 7000)
+    plt.hist(a.flatten(), 30, range=(0, 1))
+plt.show()
