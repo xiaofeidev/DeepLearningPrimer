@@ -208,3 +208,292 @@ for i, a in activations.items():
     # plt.ylim(0, 7000)
     plt.hist(a.flatten(), 30, range=(0, 1))
 plt.show()
+
+下面这段 LVQ 的 Python 实现代码感觉实现的有点问题啊，最后画出的图感觉有问题：
+import numpy as np
+import random
+
+def lvq(X, y, k, alpha=0.01, epochs=100):
+    """
+    学习向量量化 (LVQ) 算法的简单实现
+
+    参数：
+    - X: 输入数据，每行代表一个样本
+    - y: 样本对应的真实类别
+    - k: 簇的数量
+    - alpha: 学习率
+    - epochs: 迭代次数
+
+    返回：
+    - prototypes: 最终的原型向量
+    - labels: 每个原型向量所代表的类别
+    """
+
+    # 初始化原型向量
+    prototypes = X[np.random.choice(len(X), k, replace=False)]
+    labels = np.zeros(k)
+
+    for epoch in range(epochs):
+        for i in range(len(X)):
+            # 计算样本与原型向量的距离
+            distances = np.linalg.norm(X[i] - prototypes, axis=1)
+
+            # 找到距离最近的原型向量
+            closest_prototype = np.argmin(distances)
+
+            # 更新原型向量
+            if y[i] == labels[closest_prototype]:
+                prototypes[closest_prototype] += alpha * (X[i] - prototypes[closest_prototype])
+            else:
+                prototypes[closest_prototype] -= alpha * (X[i] - prototypes[closest_prototype])
+
+    return prototypes, labels
+
+# 生成一些示例数据
+np.random.seed(42)
+X = np.concatenate([np.random.normal(loc=i, scale=1, size=(50, 2)) for i in range(2)])
+y = np.concatenate([np.full(50, i) for i in range(2)])
+
+# 使用LVQ算法进行学习
+k = 2
+prototypes, labels = lvq(X, y, k)
+
+# 绘制原始数据和原型向量
+import matplotlib.pyplot as plt
+
+plt.scatter(X[:, 0], X[:, 1], c=y, cmap='viridis', alpha=0.5, edgecolors='w', linewidth=0.8)
+plt.scatter(prototypes[:, 0], prototypes[:, 1], c='red', marker='X', s=200, label='Prototypes')
+plt.title('Learning Vector Quantization (LVQ)')
+plt.legend()
+plt.show()
+
+下面这段学习向量量化(LVQ)的简单实现代码有没有什么问题，如何改进
+import numpy as np
+import random
+
+def lvq(X, y, k, alpha=0.01, epochs=100):
+    """
+    学习向量量化 (LVQ) 算法的简单实现
+
+    参数：
+    - X: 输入数据，每行代表一个样本
+    - y: 样本对应的真实类别
+    - k: 簇的数量
+    - alpha: 初始学习率
+    - epochs: 迭代次数
+
+    返回：
+    - prototypes: 最终的原型向量
+    - labels: 每个原型向量所代表的类别
+    """
+
+    # 初始化原型向量和对应的类别
+    prototypes = X[np.random.choice(len(X), k, replace=False)]
+    labels = np.array([random.choice(np.unique(y)) for _ in range(k)])  # 随机选择类别
+
+    for epoch in range(epochs):
+        for i in range(len(X)):
+            # 计算样本与原型向量的距离
+            distances = np.linalg.norm(X[i] - prototypes, axis=1)
+
+            # 找到距离最近的原型向量
+            closest_prototype = np.argmin(distances)
+
+            # 调整学习率
+            current_alpha = alpha / (epoch + 1)
+
+            # 更新原型向量
+            if y[i] == labels[closest_prototype]:
+                prototypes[closest_prototype] += current_alpha * (X[i] - prototypes[closest_prototype])
+            else:
+                prototypes[closest_prototype] -= current_alpha * (X[i] - prototypes[closest_prototype])
+
+    return prototypes, labels
+
+# 生成一些示例数据
+np.random.seed(42)
+X = np.concatenate([np.random.normal(loc=i, scale=1, size=(50, 2)) for i in range(2)])
+y = np.concatenate([np.full(50, i) for i in range(2)])
+
+# 使用LVQ算法进行学习
+k = 2
+prototypes, labels = lvq(X, y, k)
+
+# 绘制原始数据和原型向量
+import matplotlib.pyplot as plt
+
+plt.scatter(X[:, 0], X[:, 1], c=y, cmap='viridis', alpha=0.5, edgecolors='w', linewidth=0.8)
+plt.scatter(prototypes[:, 0], prototypes[:, 1], c='red', marker='X', s=200, label='Prototypes')
+plt.title('Learning Vector Quantization (LVQ)')
+plt.legend()
+plt.show()
+
+
+
+下面这段 LVQ 算法的实现代码，感觉最后的分类结果重叠度很大，能不能帮我改进下：
+import numpy as np
+
+def lvq(X, y, k, alpha=0.01, epochs=100):
+    """
+    学习向量量化 (LVQ) 算法的简单实现
+
+    参数：
+    - X: 输入数据，每行代表一个样本
+    - y: 样本对应的真实类别
+    - k: 簇的数量
+    - alpha: 初始学习率
+    - epochs: 迭代次数
+
+    返回：
+    - prototypes: 最终的原型向量
+    - labels: 每个原型向量所代表的类别
+    """
+
+    # 根据样本类别进行初始化原型向量
+    prototypes = np.array([X[y == i].mean(axis=0) for i in range(k)])
+    labels = np.arange(k)  # 初始时每个原型向量的标签与其索引相同
+
+    for epoch in range(epochs):
+        for i in range(len(X)):
+            # 计算样本与原型向量的距离
+            distances = np.linalg.norm(X[i] - prototypes, axis=1)
+
+            # 找到距离最近的原型向量
+            closest_prototype = np.argmin(distances)
+
+            # 调整学习率
+            current_alpha = alpha / (epoch + 1)
+
+            # 更新原型向量的位置和标签
+            if y[i] == labels[closest_prototype]:
+                prototypes[closest_prototype] += current_alpha * (X[i] - prototypes[closest_prototype])
+            else:
+                prototypes[closest_prototype] -= current_alpha * (X[i] - prototypes[closest_prototype])
+
+    return prototypes, labels
+
+# 生成一些示例数据
+np.random.seed(42)
+X = np.concatenate([np.random.normal(loc=i, scale=1, size=(50, 2)) for i in range(2)])
+y = np.concatenate([np.full(50, i) for i in range(2)])
+
+# 使用LVQ算法进行学习
+k = 2
+prototypes, labels = lvq(X, y, k)
+
+# 绘制原始数据和原型向量
+import matplotlib.pyplot as plt
+
+plt.scatter(X[:, 0], X[:, 1], c=y, cmap='viridis', alpha=0.5, edgecolors='w', linewidth=0.8)
+plt.scatter(prototypes[:, 0], prototypes[:, 1], c='red', marker='X', s=200, label='Prototypes')
+plt.title('Learning Vector Quantization (LVQ)')
+plt.legend()
+plt.show()
+
+
+我下面的这段层次聚类算法的实现代码报错：ValueError: all the input array dimensions except for the concatenation axis must match exactly, but along dimension 0, the array at index 0 has size 8 and the array at index 1 has size 10
+请你提供修改正确后的版本
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+def calculate_distance_matrix(X):
+    n = len(X)
+    distances = np.zeros((n, n))
+    for i in range(n):
+        for j in range(i + 1, n):
+            distances[i, j] = np.linalg.norm(X[i] - X[j])
+            distances[j, i] = distances[i, j]
+    return distances
+
+def find_closest_clusters(distances):
+    min_distance = np.inf
+    min_i, min_j = -1, -1
+    for i in range(len(distances)):
+        for j in range(i + 1, len(distances)):
+            if distances[i, j] < min_distance:
+                min_distance = distances[i, j]
+                min_i, min_j = i, j
+    return min_i, min_j
+
+def merge_clusters(clusters, i, j):
+    merged_cluster = clusters[i] + clusters[j]
+    new_clusters = [c for idx, c in enumerate(clusters) if idx != i and idx != j]
+    new_clusters.append(merged_cluster)
+    return new_clusters
+
+def update_distances(distances, i, j):
+    new_distances = np.delete(distances, [i, j], axis=0)
+    new_distances = np.delete(new_distances, [i, j], axis=1)
+
+    # 计算新的簇与其他簇的距离
+    merged_distances = np.min([distances[i, :], distances[j, :]], axis=0)
+
+    # 将新的距离加入矩阵
+    new_distances = np.column_stack([new_distances, merged_distances])
+    new_distances = np.row_stack([new_distances, np.append(merged_distances, 0)])
+
+    return new_distances
+
+def plot_dendrogram(clusters):
+    plt.figure(figsize=(10, 5))
+    plt.title('Hierarchical Clustering Dendrogram')
+    plt.xlabel('Samples')
+    plt.ylabel('Distance')
+
+    for i, cluster in enumerate(clusters):
+        x = np.arange(len(cluster))
+        y = np.ones_like(x) * i
+        plt.scatter(x, y, marker='|', s=1000, color='black')
+
+    plt.show()
+
+def hierarchical_clustering(X):
+    # 1. 初始化每个样本为一个簇
+    clusters = [[i] for i in range(len(X))]
+
+    # 2. 计算初始距离矩阵
+    distances = calculate_distance_matrix(X)
+
+    # 3. 开始合并簇直到剩下一个簇
+    while len(clusters) > 1:
+        # 4. 找到最近的两个簇
+        i, j = find_closest_clusters(distances)
+
+        # 5. 合并两个簇
+        clusters = merge_clusters(clusters, i, j)
+
+        # 6. 更新距离矩阵
+        distances = update_distances(distances, i, j)
+
+    # 输出: 最终形成的簇
+    return clusters
+
+# 生成一些示例数据
+np.random.seed(42)
+X = np.random.rand(10, 2)
+
+# 进行层次聚类
+result_clusters = hierarchical_clustering(X)
+
+# 绘制树状图
+plot_dendrogram(result_clusters)
+
+
+
+我下面这段Python代码报错： ValueError: all the input array dimensions except for the concatenation axis must match exactly, but along dimension 0, the array at index 0 has size 8 and the array at index 1 has size 10
+请你提供修改后的版本，下面是代码：
+
+import numpy as np
+def update_distances(distances, i, j):
+    new_distances = np.delete(distances, [i, j], axis=0)
+    new_distances = np.delete(new_distances, [i, j], axis=1)
+
+    # 计算新的簇与其他簇的距离
+    merged_distances = np.min([distances[i, :], distances[j, :]], axis=0)
+
+    # 将新的距离加入矩阵
+    new_distances = np.column_stack([new_distances, merged_distances])
+    new_distances = np.row_stack([new_distances, np.append(merged_distances, 0)])
+
+    return new_distances

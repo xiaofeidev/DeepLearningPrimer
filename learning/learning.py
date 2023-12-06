@@ -75,7 +75,6 @@ class TwoLayerNet:
         accuracy = np.sum(y == t) / float(x.shape[0])
         return accuracy
 
-
     def gradient(self, x, t):
         # forward
         self.loss(x, t)
@@ -96,7 +95,6 @@ class TwoLayerNet:
         grads['W2'] = self.layers['Affine2'].dW
         grads['b2'] = self.layers['Affine2'].db
         return grads
-
 
     def num_gradient(self, x, t):
         """
@@ -151,8 +149,8 @@ if __name__ == "__main__":
         x_batch = x_train[batch_mask]  # 含 100 条数据
         t_batch = t_train[batch_mask]  # 含 100 条数据
         # 计算梯度
-        grad = network.gradient(x_batch, t_batch)
-        # grad = network.gradient(x_batch, t_batch) # 高速版!
+        grad = network.num_gradient(x_batch, t_batch)
+        # grad = network.gradient(x_batch, t_batch)  # 高速版!
         # 更新参数，每一次都根据神经网络的梯度将所有的参数都更新一次
         for key in ('W1', 'b1', 'W2', 'b2'):
             # 梯度下降法更新参数的值
@@ -170,7 +168,6 @@ if __name__ == "__main__":
             train_acc_list.append(train_acc)
             test_acc_list.append(test_acc)
             print("train acc, test acc | " + str(train_acc) + ", " + str(test_acc))
-
 
     """
     将上面训练出来的参数作为文件保存起来
