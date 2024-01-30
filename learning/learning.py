@@ -8,6 +8,7 @@ from neural_network.activation import *
 from gradient.gradient import numerical_gradient
 from num_recog.data.mnist import load_mnist
 import math
+import time
 
 
 class TwoLayerNet:
@@ -72,7 +73,8 @@ class TwoLayerNet:
             #  如果监督数据是 one-hot 形式，则做此处理
             #  否则不需要处理
             t = np.argmax(t, axis=1)
-        accuracy = np.sum(y == t) / float(x.shape[0])
+        # 保留四位小数
+        accuracy = round(np.sum(y == t) / float(x.shape[0]), 4)
         return accuracy
 
     def gradient(self, x, t):
@@ -114,16 +116,25 @@ class TwoLayerNet:
         return grads
 
 
+def format_time(seconds):
+    hours = int(seconds // 3600)
+    minutes = int((seconds % 3600) // 60)
+    seconds = seconds % 60
+    return f"{hours:02d}:{minutes:02d}:{seconds:.2f}"
+
+
 if __name__ == "__main__":
     """
     下面开始讲训练数据分批来训练神经网络(的参数)，用数值微分梯度
     用于在 MNIST 数据集上进行手写数字识别
     其实直接运行下面的代码(用 CPU 训练，低效的数值微分计算梯度算法)会非常非常的慢，待以后看看 BP 算法的版本运行效率如何
     """
+    start_time = time.time()
+
     (x_train, t_train), (x_test, t_test) = load_mnist(normalize=True, flatten=True, one_hot_label=True)
 
     # 超参数
-    iters_num = 10000  # 参数更新次数，这里共对参数进行 10000 次更新，每一次都将所有参数的值更新一遍
+    iters_num = 9600  # 参数更新次数，这里共对参数进行 9600 次更新，每一次都将所有参数的值更新一遍(共 16 个 epoch)
     train_size = x_train.shape[0]  # 60000，共包含 60000 条训练数据
     batch_size = 100  # 每个数据批次包含 100 条数据(这里是 100 张图片)
     learning_rate = 0.1  # 学习率，是否有点偏大？
@@ -149,8 +160,8 @@ if __name__ == "__main__":
         x_batch = x_train[batch_mask]  # 含 100 条数据
         t_batch = t_train[batch_mask]  # 含 100 条数据
         # 计算梯度
-        grad = network.num_gradient(x_batch, t_batch)
-        # grad = network.gradient(x_batch, t_batch)  # 高速版!
+        # grad = network.num_gradient(x_batch, t_batch)
+        grad = network.gradient(x_batch, t_batch)  # 高速版!
         # 更新参数，每一次都根据神经网络的梯度将所有的参数都更新一次
         for key in ('W1', 'b1', 'W2', 'b2'):
             # 梯度下降法更新参数的值
@@ -168,6 +179,11 @@ if __name__ == "__main__":
             train_acc_list.append(train_acc)
             test_acc_list.append(test_acc)
             print("train acc, test acc | " + str(train_acc) + ", " + str(test_acc))
+
+    end_time = time.time()
+    execution_time = end_time - start_time
+    formatted_time = format_time(execution_time)
+    print(f"Training time: {formatted_time}")
 
     """
     将上面训练出来的参数作为文件保存起来
@@ -187,4 +203,5 @@ if __name__ == "__main__":
         # 下面的第一个参数传入要序列化保存的字典
         pickle.dump(network.params, file)
 
-    print(f"字典已保存为 {pickle_filename} 文件。")
+    # print(f"字典已保存为 {pickle_filename} 文件。")
+    print(f"模型文件保存至源码同目录。")
